@@ -12,9 +12,9 @@ import {
 } from "@mui/material";
 import "./App.css";
 
+import qs from "qs";
 import { useEffect, useState } from "react";
 import client from "./api/client";
-
 function App() {
   const [state, setState] = useState({
     data: [],
@@ -26,6 +26,8 @@ function App() {
     totalPages: 0,
     empty: true,
   });
+
+  const [isLogin, setIsLogin] = useState(false);
 
   const getBlogs = async (page) => {
     const resp = await (page
@@ -58,26 +60,52 @@ function App() {
   };
 
   useEffect(() => {
-    getBlogs();
+    const logIn = async () => {
+      const data = { username: "user", password: "password" };
+      const options = {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        data: qs.stringify(data),
+        url: "http://localhost:8080/login",
+      };
+      const res = await client(options);
+      return res;
+    };
+    logIn()
+      .then((res) => {
+        console.log("Response after login success: ", res);
+        setIsLogin(true);
+      })
+      .catch((error) => {
+        console.log("error: ", error);
+      });
   }, []);
+
+  useEffect(() => {
+    if (isLogin) {
+      getBlogs();
+    }
+  }, [isLogin]);
 
   const handleChangePage = async (event, page) => {
     getBlogs(page);
   };
 
-  const handleDelete = async (blog) => {
-    const resp = await client.post("/blogs/delete", blog);
-    console.log(resp);
-    if (resp.status === 200) {
-      const blogs = state.data.filter((item) => item.blogId !== blog.blogId);
-
-      setState((prev) => ({
-        ...prev,
-        data: blogs,
-      }));
-    } else {
-      alert("Delete fail");
-    }
+  const handleDelete = (blog) => {
+    client
+      .delete("/blogs/delete", { data: blog })
+      .then((res) => {
+        console.log(res);
+        const blogs = state.data.filter((item) => item.blogId !== blog.blogId);
+        setState((prev) => ({
+          ...prev,
+          data: blogs,
+        }));
+      })
+      .catch((err) => {
+        console.log(err);
+        alert("Delete fail");
+      });
   };
   return (
     <Container>
