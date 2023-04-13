@@ -5,111 +5,36 @@ import {
   CardContent,
   Container,
   Grid,
+  LinearProgress,
   Pagination,
   Paper,
   Stack,
   Typography,
 } from "@mui/material";
 
-import qs from "qs";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import client from "../api/client";
 
+import { deleteBlogStart, fetchBlogStart } from "../store/blog/blog.action";
+import { selecBlogsIsFetching, selectBlogs } from "../store/blog/blog.selector";
 const BlogList = () => {
   const nevigate = useNavigate();
 
-  const [state, setState] = useState({
-    data: [],
-    first: true,
-    last: false,
-    size: 0,
-    number: 0,
-    totalElements: 0,
-    totalPages: 0,
-    empty: true,
-  });
-
-  const [isLogin, setIsLogin] = useState(false);
-
-  const getBlogs = async (page) => {
-    const resp = await (page
-      ? client.get(`/blogs?pageNo=${page - 1}`)
-      : client.get("/blogs"));
-    console.log(resp.data);
-
-    const {
-      empty,
-      first,
-      last,
-      numberOfElements,
-      totalElements,
-      totalPages,
-      content,
-      number,
-    } = resp.data;
-
-    setState((prev) => ({
-      ...prev,
-      empty,
-      first,
-      last,
-      numberOfElements,
-      totalElements,
-      totalPages,
-      number,
-      data: content,
-    }));
-  };
+  const blogMap = useSelector(selectBlogs);
+  const isLoading = useSelector(selecBlogsIsFetching);
+  const dispatch = useDispatch();
 
   useEffect(() => {
-    const logIn = async () => {
-      const data = { username: "user", password: "password" };
-      const options = {
-        method: "POST",
-        headers: { "content-type": "application/x-www-form-urlencoded" },
-        data: qs.stringify(data),
-        url: "http://localhost:8080/login",
-      };
-      const res = await client(options);
-      return res;
-    };
-    console.log("RUN LOGIN");
-    logIn()
-      .then((res) => {
-        console.log("Response after login success: ", res);
-        setIsLogin(true);
-      })
-      .catch((error) => {
-        console.log("error: ", error);
-      });
-  }, []);
-
-  useEffect(() => {
-    if (isLogin) {
-      getBlogs();
-    }
-  }, [isLogin]);
+    dispatch(fetchBlogStart(0, 10));
+  }, [dispatch]);
 
   const handleChangePage = async (event, page) => {
-    getBlogs(page);
+    dispatch(fetchBlogStart(page - 1, 10));
   };
 
   const handleDelete = (blog) => {
-    client
-      .delete("/blogs/delete", { data: blog })
-      .then((res) => {
-        console.log(res);
-        const blogs = state.data.filter((item) => item.blogId !== blog.blogId);
-        setState((prev) => ({
-          ...prev,
-          data: blogs,
-        }));
-      })
-      .catch((err) => {
-        console.log(err);
-        alert("Delete fail");
-      });
+    dispatch(deleteBlogStart(blog));
   };
   const handleClick = () => {
     nevigate("/blog/create");
@@ -122,48 +47,52 @@ const BlogList = () => {
   return (
     <Container>
       <Paper sx={{ padding: "30px" }}>
-        <Grid container spacing={3}>
-          <Grid item md={12} xs={12}>
-            <Typography variant="h3" align="center">
-              My blogs
-            </Typography>
-          </Grid>
-          <Grid item md={12} xs={12}>
-            <Button onClick={handleClick} variant="contained">
-              Create Blog
-            </Button>
-          </Grid>
-          {state.data.map((item) => (
-            <Grid item md={4} xs={12} key={item.blogId}>
-              <Card>
-                <CardContent>
-                  <Typography gutterBottom variant="h5">
-                    {item.title}
-                  </Typography>
-                  <Typography gutterBottom variant="p">
-                    {item.url}
-                  </Typography>
-                </CardContent>
-                <CardActions>
-                  <Button onClick={() => handleEdit(item)}>Edit</Button>
-                  <Button onClick={() => handleDelete(item)}>DELETE</Button>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
-
-          {!state.empty ? (
+        {isLoading ? (
+          <LinearProgress />
+        ) : (
+          <Grid container spacing={3}>
             <Grid item md={12} xs={12}>
-              <Stack>
-                <Pagination
-                  count={state.totalPages}
-                  page={state.number + 1}
-                  onChange={handleChangePage}
-                ></Pagination>
-              </Stack>
+              <Typography variant="h3" align="center">
+                My blogs
+              </Typography>
             </Grid>
-          ) : null}
-        </Grid>
+            <Grid item md={12} xs={12}>
+              <Button onClick={handleClick} variant="contained">
+                Create Blog
+              </Button>
+            </Grid>
+            {blogMap.data.map((item) => (
+              <Grid item md={4} xs={12} key={item.blogId}>
+                <Card>
+                  <CardContent>
+                    <Typography gutterBottom variant="h5">
+                      {item.title}
+                    </Typography>
+                    <Typography gutterBottom variant="p">
+                      {item.url}
+                    </Typography>
+                  </CardContent>
+                  <CardActions>
+                    <Button onClick={() => handleEdit(item)}>Edit</Button>
+                    <Button onClick={() => handleDelete(item)}>DELETE</Button>
+                  </CardActions>
+                </Card>
+              </Grid>
+            ))}
+
+            {!blogMap.empty ? (
+              <Grid item md={12} xs={12}>
+                <Stack>
+                  <Pagination
+                    count={blogMap.totalPages}
+                    page={blogMap.number + 1}
+                    onChange={handleChangePage}
+                  ></Pagination>
+                </Stack>
+              </Grid>
+            ) : null}
+          </Grid>
+        )}
       </Paper>
     </Container>
   );
