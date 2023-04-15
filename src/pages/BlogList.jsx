@@ -11,105 +11,31 @@ import {
   Typography,
 } from "@mui/material";
 
-import qs from "qs";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import client from "../api/client";
+
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchBlogStart } from '../store/blog/blog.action';
+import { selectBlogIsFectching, selectBlogs } from '../store/blog/blog.selector';
 
 const BlogList = () => {
   const nevigate = useNavigate();
 
-  const [state, setState] = useState({
-    data: [],
-    first: true,
-    last: false,
-    size: 0,
-    number: 0,
-    totalElements: 0,
-    totalPages: 0,
-    empty: true,
-  });
+  const dispatch = useDispatch();
+  const blogs = useSelector(selectBlogs);
+  console.log(blogs);
+  const isFetching = useSelector(selectBlogIsFectching);
 
-  const [isLogin, setIsLogin] = useState(false);
-
-  const getBlogs = async (page) => {
-    const resp = await (page
-      ? client.get(`/blogs?pageNo=${page - 1}`)
-      : client.get("/blogs"));
-    console.log(resp.data);
-
-    const {
-      empty,
-      first,
-      last,
-      numberOfElements,
-      totalElements,
-      totalPages,
-      content,
-      number,
-    } = resp.data;
-
-    setState((prev) => ({
-      ...prev,
-      empty,
-      first,
-      last,
-      numberOfElements,
-      totalElements,
-      totalPages,
-      number,
-      data: content,
-    }));
-  };
-
-  useEffect(() => {
-    const logIn = async () => {
-      const data = { username: "user", password: "password" };
-      const options = {
-        method: "POST",
-        headers: { "content-type": "application/x-www-form-urlencoded" },
-        data: qs.stringify(data),
-        url: "http://localhost:8080/login",
-      };
-      const res = await client(options);
-      return res;
-    };
-    console.log("RUN LOGIN");
-    logIn()
-      .then((res) => {
-        console.log("Response after login success: ", res);
-        setIsLogin(true);
-      })
-      .catch((error) => {
-        console.log("error: ", error);
-      });
-  }, []);
-
-  useEffect(() => {
-    if (isLogin) {
-      getBlogs();
-    }
-  }, [isLogin]);
+  useEffect(()=>{
+    dispatch(fetchBlogStart(0,10))
+  },[dispatch])
 
   const handleChangePage = async (event, page) => {
-    getBlogs(page);
+    dispatch(fetchBlogStart(page-1,10))
   };
 
   const handleDelete = (blog) => {
-    client
-      .delete("/blogs/delete", { data: blog })
-      .then((res) => {
-        console.log(res);
-        const blogs = state.data.filter((item) => item.blogId !== blog.blogId);
-        setState((prev) => ({
-          ...prev,
-          data: blogs,
-        }));
-      })
-      .catch((err) => {
-        console.log(err);
-        alert("Delete fail");
-      });
+    
   };
   const handleClick = () => {
     nevigate("/blog/create");
@@ -133,7 +59,7 @@ const BlogList = () => {
               Create Blog
             </Button>
           </Grid>
-          {state.data.map((item) => (
+          {blogs.data.map((item) => (
             <Grid item md={4} xs={12} key={item.blogId}>
               <Card>
                 <CardContent>
@@ -152,12 +78,12 @@ const BlogList = () => {
             </Grid>
           ))}
 
-          {!state.empty ? (
+          {!blogs.empty ? (
             <Grid item md={12} xs={12}>
               <Stack>
                 <Pagination
-                  count={state.totalPages}
-                  page={state.number + 1}
+                  count={blogs.totalPages}
+                  page={blogs.number + 1}
                   onChange={handleChangePage}
                 ></Pagination>
               </Stack>
