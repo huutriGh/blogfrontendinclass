@@ -1,8 +1,8 @@
 import { BLOG_ACTION_TYPES } from "./blog.types";
 const BLOG_INITIAL_STATE = {
-  error: "",  
+  error: "",
   isFetching: false,
-  blogs: [],
+  blogs: {},
 };
 
 export const blogReducer = (state = BLOG_INITIAL_STATE, action = {}) => {
@@ -24,8 +24,23 @@ export const blogReducer = (state = BLOG_INITIAL_STATE, action = {}) => {
       return {
         ...state,
         isFetching: false,
-        error: payload
-        
+        error: payload,
+      };
+    case BLOG_ACTION_TYPES.DELETE_BLOG_SUCCESS:
+      const newBlogs = state.blogs.data.filter(
+        (item) => item.blogId !== payload.blogId
+      );
+      return {
+        ...state,
+        blogs: {
+          ...state.blogs,
+          data: newBlogs,
+        },
+      };
+    case BLOG_ACTION_TYPES.DELETE_BLOG_FAILED:
+      return {
+        ...state,
+        error: payload,
       };
 
     default:

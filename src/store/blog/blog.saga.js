@@ -3,15 +3,29 @@ import client from "../../api/client";
 
 import { BLOG_ACTION_TYPES } from "./blog.types";
 
-import { fetchBlogSuccess, fetchBlogFailed } from "./blog.action";
+import {
+  fetchBlogSuccess,
+  fetchBlogFailed,
+  deleteBlogSuccess,
+  deleteBlogFailed,
+} from "./blog.action";
 
 const getBlogs = async ({ pageNo, pageSize = 10 }) => {
   const resp = await client.get(`/blogs?pageNo=${pageNo}&pageSize=${pageSize}`);
   return resp;
 };
+const deleteBlogs = async (blog) => {
+  const resp = await client({
+    method: "DELETE",
+    url: "/blogs/delete",
+    data: blog,
+  });
+  return resp;
+};
 
 function* fetchBlogAsync({ payload }) {
   try {
+    yield delay(10000);
     const resp = yield call(getBlogs, payload);
     const {
       empty,
@@ -40,10 +54,24 @@ function* fetchBlogAsync({ payload }) {
   }
 }
 
+function* deleteBlogAsync(param) {
+  console.log("Delete Param: ", param);
+  const { action, payload } = param;
+
+  try {
+    yield call(deleteBlogs, payload);
+    yield put(deleteBlogSuccess(payload));
+  } catch (error) {
+    yield put(deleteBlogFailed(error));
+  }
+}
 export function* onFecthBlogs() {
   yield takeLatest(BLOG_ACTION_TYPES.FETCH_BLOG_START, fetchBlogAsync);
 }
+export function* onDeleteBlogs() {
+  yield takeLatest(BLOG_ACTION_TYPES.DELETE_BLOG_START, deleteBlogAsync);
+}
 
-export function* blogsSaga(){
-    yield all([call(onFecthBlogs)])
+export function* blogsSaga() {
+  yield all([call(onFecthBlogs), call(onDeleteBlogs)]);
 }
