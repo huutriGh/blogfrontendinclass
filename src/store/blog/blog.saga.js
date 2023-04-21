@@ -54,10 +54,7 @@ function* fetchBlogAsync({ payload }) {
   }
 }
 
-function* deleteBlogAsync(param) {
-  console.log("Delete Param: ", param);
-  const { action, payload } = param;
-
+function* deleteBlogAsync({ payload }) {
   try {
     yield call(deleteBlogs, payload);
     yield put(deleteBlogSuccess(payload));
